@@ -1,11 +1,22 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
 
+// Mở rộng Request
+interface ExtendedRequest extends IncomingMessage {
+  query?: Record<string, string | string[]>;
+  bodyRaw?: string;
+  body?: any;
+  getBody: () => Promise<any>;
+}
+
+// Mở rộng Response
+interface ExtendedResponse extends ServerResponse {
+  status: (code: number) => ExtendedResponse;
+  json: (data: any) => void;
+}
+
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-type Handler = (
-  req: IncomingMessage & { query?: any; body?: any },
-  res: ServerResponse
-) => void;
+type Handler = (req: ExtendedRequest, res: ExtendedResponse) => void;
 
 interface Route {
   path: string;
@@ -22,8 +33,8 @@ export default class ExpressPlus {
   };
 
   private middlewares: ((
-    req: IncomingMessage & { query?: any; body?: any },
-    res: ServerResponse,
+    req: ExtendedRequest,
+    res: ExtendedResponse,
     next: () => void
   ) => void)[] = [];
 
@@ -33,8 +44,8 @@ export default class ExpressPlus {
 
   use(
     middleware: (
-      req: IncomingMessage & { query?: any; body?: any },
-      res: ServerResponse,
+      req: ExtendedRequest,
+      res: ExtendedResponse,
       next: () => void
     ) => void
   ): void {
@@ -66,22 +77,52 @@ export default class ExpressPlus {
       const method = req.method as Method;
       const parsedUrl = parse(req.url || "", true);
       const pathname = parsedUrl.pathname || "/";
+
       const route = this.routes[method].find((r) => r.path === pathname);
 
-      (req as any).query = parsedUrl.query;
-      (req as any).body = {};
+      const extendedReq = req as ExtendedRequest;
+      const extendedRes = res as ExtendedResponse;
+
+      extendedReq.query = parsedUrl.query;
+      extendedReq.getBody = async () => {
+        if (extendedReq.body) return extendedReq.body;
+
+        const chunks: Buffer[] = [];
+        for await (const chunk of extendedReq) {
+          chunks.push(chunk);
+        }
+
+        const raw = Buffer.concat(chunks).toString();
+        extendedReq.bodyRaw = raw;
+
+        try {
+          extendedReq.body = JSON.parse(raw);
+        } catch {
+          extendedReq.body = {};
+        }
+
+        return extendedReq.body;
+      };
+
+      extendedRes.status = function (code: number) {
+        extendedRes.statusCode = code;
+        return extendedRes;
+      };
+
+      extendedRes.json = function (data: any) {
+        extendedRes.setHeader("Content-Type", "application/json");
+        extendedRes.end(JSON.stringify(data));
+      };
 
       let i = 0;
-
       const next = () => {
         const middleware = this.middlewares[i++];
         if (middleware) {
-          middleware(req as any, res, next);
+          middleware(extendedReq, extendedRes, next);
         } else if (route) {
-          route.handler(req as any, res);
+          route.handler(extendedReq, extendedRes);
         } else {
-          res.statusCode = 404;
-          res.end("Not Found");
+          extendedRes.status(404).end("Not Found");
         }
       };
 

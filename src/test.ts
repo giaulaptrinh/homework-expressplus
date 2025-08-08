@@ -1,46 +1,11 @@
 import ExpressPlus from "./index";
 import { sum, sub, mul, div } from "@gieo/utils";
-
 const app = new ExpressPlus();
 
-// GET /
-app.get("/", (req, res) => {
-  res.end("Hello, World!");
-});
-
-// GET /hello?name=...
-app.get("/hello", (req, res) => {
-  const name = req.query.name || "Guest";
-  res.end(`Hello, ${name}!`);
-});
-
-// Middleware để parse body JSON
-app.use((req, res, next) => {
-  let body = "";
-  req.on("data", (chunk) => {
-    body += chunk.toString();
-  });
-  req.on("end", () => {
-    try {
-      req.body = JSON.parse(body);
-    } catch (e) {
-      req.body = {};
-    }
-    next();
-  });
-});
-
-// POST /calculate
-app.post("/calculate", (req, res) => {
-  const { a, b, op } = req.body;
-
-  if (typeof a !== "number" || typeof b !== "number") {
-    res.statusCode = 400;
-    return res.end("a và b phải là số");
-  }
+app.post("/calc", async (req, res) => {
+  const { a, b, op } = await req.getBody();
 
   let result: number;
-
   switch (op) {
     case "sum":
       result = sum(a, b);
@@ -55,28 +20,79 @@ app.post("/calculate", (req, res) => {
       result = div(a, b);
       break;
     default:
-      res.statusCode = 400;
-      return res.end("Toán tử không hợp lệ (sum, sub, mul, div)");
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        message: "Invalid operator",
+      });
   }
 
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ result }));
+  return res.status(200).json({
+    statusCode: 200,
+    success: true,
+    result,
+  });
 });
 
-// Các route khác
-app.put("/update", (req, res) => {
-  res.end("Update successful");
-});
+// Các route cơ bản
+app.get("/", (req, res) =>
+  res.status(200).json({ success: true, status: 200, result: "GET / OK" })
+);
+app.put("/", (req, res) =>
+  res.status(200).json({ success: true, status: 200, result: "PUT / OK" })
+);
+app.post("/", (req, res) =>
+  res.status(200).json({ success: true, status: 200, result: "POST / OK" })
+);
+app.patch("/", (req, res) =>
+  res.status(200).json({ success: true, status: 200, result: "PATCH / OK" })
+);
+app.delete("/", (req, res) =>
+  res.status(200).json({ success: true, status: 200, result: "DELETE / OK" })
+);
 
-app.patch("/modify", (req, res) => {
-  res.end("Modify successful");
-});
+const mathRoute =
+  (op: (a: number, b: number) => number) => async (req: any, res: any) => {
+    const { a, b } = await req.getBody();
+    if (typeof a !== "number" || typeof b !== "number") {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        result: "Invalid input. 'a' and 'b' must be numbers.",
+      });
+    }
 
-app.delete("/delete", (req, res) => {
-  res.end("Delete successful");
-});
+    try {
+      const result = op(a, b);
+      res.status(200).json({ success: true, status: 200, result });
+    } catch (err: any) {
+      res
+        .status(500)
+        .json({ success: false, status: 500, result: err.message });
+    }
+  };
 
-// Start server
+// Math operations
+app.post("/sum", mathRoute(sum));
+app.post("/sub", mathRoute(sub));
+app.post("/mul", mathRoute(mul));
+app.post("/div", async (req, res) => {
+  const { a, b } = await req.getBody();
+  if (typeof a !== "number" || typeof b !== "number") {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      result: "Invalid input. 'a' and 'b' must be numbers.",
+    });
+  }
+  if (b === 0) {
+    return res
+      .status(400)
+      .json({ success: false, status: 400, result: "Cannot divide by zero" });
+  }
+  const result = div(a, b);
+  res.status(200).json({ success: true, status: 200, result });
+});
 app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+  console.log("✅ Server is running at http://localhost:3000");
 });
