@@ -12,6 +12,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.14.0",
   "devDependencies": {
+    "@gieo/utils": "^1.0.5",
     "@types/node": "^24.2.0",
     "jiti": "^2.5.1",
     "typescript": "^5.9.2"
