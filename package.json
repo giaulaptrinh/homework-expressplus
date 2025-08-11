@@ -4,9 +4,8 @@
   "description": "",
   "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepack": "tsc",
-    "test": "node dist/test.js"
+    "test": "node dist/test.js",
+    "prepack": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +13,7 @@
   "packageManager": "pnpm@10.14.0",
   "devDependencies": {
     "@gieo/utils": "^1.0.5",
-    "@types/node": "^24.2.0",
+    "@types/node": "^24.2.1",
     "jiti": "^2.5.1",
     "typescript": "^5.9.2"
   }
