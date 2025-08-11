@@ -1,11 +1,12 @@
 {
   "name": "@gieo/express",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
-  "main": "./dist/test.js",
+  "main": "./dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepack": "tsc"
+    "prepack": "tsc",
+    "test": "node dist/test.js"
   },
   "keywords": [],
   "author": "",
