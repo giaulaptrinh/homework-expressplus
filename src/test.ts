@@ -3,35 +3,56 @@ import { sum, sub, mul, div } from "@gieo/utils";
 const app = new ExpressPlus();
 
 app.post("/calc", async (req, res) => {
-  const { a, b, op } = await req.getBody();
+  const { op, ...numbers } = await req.getBody();
 
-  let result: number;
-  switch (op) {
-    case "sum":
-      result = sum(a, b);
-      break;
-    case "sub":
-      result = sub(a, b);
-      break;
-    case "mul":
-      result = mul(a, b);
-      break;
-    case "div":
-      result = div(a, b);
-      break;
-    default:
-      return res.status(400).json({
-        statusCode: 400,
-        success: false,
-        message: "Invalid operator",
-      });
+  // Lấy tất cả giá trị số từ body
+  const values = Object.values(numbers)
+    .map(Number)
+    .filter((v) => !isNaN(v));
+
+  if (values.length < 2) {
+    return res.status(400).json({
+      statusCode: 400,
+      success: false,
+      message: "Need at least two numeric values",
+    });
   }
 
-  return res.status(200).json({
-    statusCode: 200,
-    success: true,
-    result,
-  });
+  let result: number;
+  try {
+    switch (op) {
+      case "sum":
+        result = sum(...values);
+        break;
+      case "sub":
+        result = sub(...values);
+        break;
+      case "mul":
+        result = mul(...values);
+        break;
+      case "div":
+        result = div(...values);
+        break;
+      default:
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          message: "Invalid operator",
+        });
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      result,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      message: err.message,
+    });
+  }
 });
 
 // Các route cơ bản

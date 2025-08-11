@@ -35,42 +35,73 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var index_1 = require("./index");
 var utils_1 = require("@gieo/utils");
 var app = new index_1.default();
 app.post("/calc", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, a, b, op, result;
+    var _a, op, numbers, values, result;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0: return [4 /*yield*/, req.getBody()];
             case 1:
-                _a = _b.sent(), a = _a.a, b = _a.b, op = _a.op;
-                switch (op) {
-                    case "sum":
-                        result = (0, utils_1.sum)(a, b);
-                        break;
-                    case "sub":
-                        result = (0, utils_1.sub)(a, b);
-                        break;
-                    case "mul":
-                        result = (0, utils_1.mul)(a, b);
-                        break;
-                    case "div":
-                        result = (0, utils_1.div)(a, b);
-                        break;
-                    default:
-                        return [2 /*return*/, res.status(400).json({
-                                statusCode: 400,
-                                success: false,
-                                message: "Invalid operator",
-                            })];
+                _a = _b.sent(), op = _a.op, numbers = __rest(_a, ["op"]);
+                values = Object.values(numbers)
+                    .map(Number)
+                    .filter(function (v) { return !isNaN(v); });
+                if (values.length < 2) {
+                    return [2 /*return*/, res.status(400).json({
+                            statusCode: 400,
+                            success: false,
+                            message: "Need at least two numeric values",
+                        })];
                 }
-                return [2 /*return*/, res.status(200).json({
-                        statusCode: 200,
-                        success: true,
-                        result: result,
-                    })];
+                try {
+                    switch (op) {
+                        case "sum":
+                            result = utils_1.sum.apply(void 0, values);
+                            break;
+                        case "sub":
+                            result = utils_1.sub.apply(void 0, values);
+                            break;
+                        case "mul":
+                            result = utils_1.mul.apply(void 0, values);
+                            break;
+                        case "div":
+                            result = utils_1.div.apply(void 0, values);
+                            break;
+                        default:
+                            return [2 /*return*/, res.status(400).json({
+                                    statusCode: 400,
+                                    success: false,
+                                    message: "Invalid operator",
+                                })];
+                    }
+                    return [2 /*return*/, res.status(200).json({
+                            statusCode: 200,
+                            success: true,
+                            result: result,
+                        })];
+                }
+                catch (err) {
+                    return [2 /*return*/, res.status(500).json({
+                            statusCode: 500,
+                            success: false,
+                            message: err.message,
+                        })];
+                }
+                return [2 /*return*/];
         }
     });
 }); });

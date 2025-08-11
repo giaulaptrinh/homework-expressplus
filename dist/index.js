@@ -169,4 +169,6 @@ var ExpressPlus = /** @class */ (function () {
     };
     return ExpressPlus;
 }());
+// ✅ Export cho cả ES Module và CommonJS
 exports.default = ExpressPlus;
+module.exports = ExpressPlus;

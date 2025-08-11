@@ -23,7 +23,7 @@ interface Route {
   handler: Handler;
 }
 
-export default class ExpressPlus {
+class ExpressPlus {
   private routes: Record<Method, Route[]> = {
     GET: [],
     POST: [],
@@ -132,3 +132,7 @@ export default class ExpressPlus {
     server.listen(port, callback);
   }
 }
+
+// ✅ Export cho cả ES Module và CommonJS
+export default ExpressPlus;
+module.exports = ExpressPlus;
