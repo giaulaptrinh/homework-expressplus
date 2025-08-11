@@ -133,6 +133,4 @@ class ExpressPlus {
   }
 }
 
-// ✅ Export cho cả ES Module và CommonJS
 export default ExpressPlus;
-module.exports = ExpressPlus;
