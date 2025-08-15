@@ -118,29 +118,33 @@ class ExpressPlus {
         return extendedReq.body;
       };
 
+      // Bind methods with correct context
       extendedRes.status = function (code: number) {
         this.statusCode = code;
         return this;
-      }.bind(this);
+      }.bind(extendedRes);
 
       extendedRes.json = function (data: any) {
         this.setHeader("Content-Type", "application/json");
         this.end(JSON.stringify(data));
-      }.bind(this);
+      }.bind(extendedRes);
 
-      // Bind render method with the correct context
-      extendedRes.render = function (view: string, data: any = {}) {
-        const filePath = path.join(this.viewsPath, `${view}.ejs`); // Sử dụng this.viewsPath từ instance
-        if (!fs.existsSync(filePath)) {
-          this.status(404).end(
-            `View "${view}.ejs" not found in ${this.viewsPath}`
-          );
-          return;
-        }
-        const html = ejs.render(fs.readFileSync(filePath, "utf-8"), data);
-        this.setHeader("Content-Type", "text/html");
-        this.end(html);
-      }.bind(this); // Bind this để giữ context của ExpressPlus
+      // Define render with closure to access viewsPath
+      extendedRes.render = (function (appInstance: ExpressPlus) {
+        return function (this: ExtendedResponse, view: string, data: any = {}) {
+          const filePath = path.join(appInstance.viewsPath, `${view}.ejs`);
+          if (!fs.existsSync(filePath)) {
+            this.statusCode = 404;
+            this.end(
+              `View "${view}.ejs" not found in ${appInstance.viewsPath}`
+            );
+            return;
+          }
+          const html = ejs.render(fs.readFileSync(filePath, "utf-8"), data);
+          this.setHeader("Content-Type", "text/html");
+          this.end(html);
+        };
+      })(this); // Pass the ExpressPlus instance to closure
 
       // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
       const route = this.routes[method].find((r) => {

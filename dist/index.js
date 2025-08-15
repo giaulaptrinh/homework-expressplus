@@ -71,16 +71,16 @@ class ExpressPlus {
                 return extendedReq.body;
             };
             extendedRes.status = function (code) {
-                extendedRes.statusCode = code;
-                return extendedRes;
-            };
+                this.statusCode = code;
+                return this;
+            }.bind(this);
             extendedRes.json = function (data) {
-                extendedRes.setHeader("Content-Type", "application/json");
-                extendedRes.end(JSON.stringify(data));
-            };
-            // Thêm phương thức render cho EJS
+                this.setHeader("Content-Type", "application/json");
+                this.end(JSON.stringify(data));
+            }.bind(this);
+            // Bind render method with the correct context
             extendedRes.render = function (view, data = {}) {
-                const filePath = path_1.default.join(this.viewsPath, `${view}.ejs`);
+                const filePath = path_1.default.join(this.viewsPath, `${view}.ejs`); // Sử dụng this.viewsPath từ instance
                 if (!fs_1.default.existsSync(filePath)) {
                     this.status(404).end(`View "${view}.ejs" not found in ${this.viewsPath}`);
                     return;
@@ -88,7 +88,7 @@ class ExpressPlus {
                 const html = ejs_1.default.render(fs_1.default.readFileSync(filePath, "utf-8"), data);
                 this.setHeader("Content-Type", "text/html");
                 this.end(html);
-            };
+            }.bind(this); // Bind this để giữ context của ExpressPlus
             // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
             const route = this.routes[method].find((r) => {
                 const routeParts = r.path.split("/").filter(Boolean);
