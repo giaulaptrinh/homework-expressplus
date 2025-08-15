@@ -3,6 +3,7 @@ import { parse } from "url";
 import ejs from "ejs";
 import path from "path";
 import fs from "fs";
+
 // Mở rộng Request
 interface ExtendedRequest extends IncomingMessage {
   query?: Record<string, string | string[]>;
@@ -16,7 +17,7 @@ interface ExtendedRequest extends IncomingMessage {
 interface ExtendedResponse extends ServerResponse {
   status: (code: number) => ExtendedResponse;
   json: (data: any) => void;
-  render: (view: string, data?: any) => void; // Thêm phương thức render
+  render: (view: string, data?: any) => void;
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -42,12 +43,14 @@ class ExpressPlus {
     next: () => void
   ) => void)[] = [];
 
-  // Định nghĩa thư mục chứa views (mặc định là "views")
-  private viewsPath: string = path.join(process.cwd(), "views");
+  // Định nghĩa thư mục chứa views với giá trị mặc định và cho phép tùy chỉnh
+  private viewsPath: string;
 
-  constructor() {
-    // Có thể cho phép tùy chỉnh viewsPath qua constructor nếu cần
-    // this.viewsPath = options.viewsPath || path.join(process.cwd(), "views");
+  constructor(options: { viewsPath?: string } = {}) {
+    this.viewsPath = options.viewsPath || path.join(process.cwd(), "views");
+    if (!fs.existsSync(this.viewsPath)) {
+      throw new Error(`Views directory "${this.viewsPath}" does not exist`);
+    }
   }
 
   private addRoute(method: Method, path: string, handler: Handler): void {
@@ -129,12 +132,14 @@ class ExpressPlus {
       extendedRes.render = function (view: string, data: any = {}) {
         const filePath = path.join(this.viewsPath, `${view}.ejs`);
         if (!fs.existsSync(filePath)) {
-          extendedRes.status(404).end("View not found");
+          this.status(404).end(
+            `View "${view}.ejs" not found in ${this.viewsPath}`
+          );
           return;
         }
         const html = ejs.render(fs.readFileSync(filePath, "utf-8"), data);
-        extendedRes.setHeader("Content-Type", "text/html");
-        extendedRes.end(html);
+        this.setHeader("Content-Type", "text/html");
+        this.end(html);
       };
 
       // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)

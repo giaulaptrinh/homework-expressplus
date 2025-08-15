@@ -1,9 +1,15 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = require("http");
 const url_1 = require("url");
+const ejs_1 = __importDefault(require("ejs"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 class ExpressPlus {
-    constructor() {
+    constructor(options = {}) {
         this.routes = {
             GET: [],
             POST: [],
@@ -12,6 +18,10 @@ class ExpressPlus {
             DELETE: [],
         };
         this.middlewares = [];
+        this.viewsPath = options.viewsPath || path_1.default.join(process.cwd(), "views");
+        if (!fs_1.default.existsSync(this.viewsPath)) {
+            throw new Error(`Views directory "${this.viewsPath}" does not exist`);
+        }
     }
     addRoute(method, path, handler) {
         this.routes[method].push({ path, handler });
@@ -35,7 +45,7 @@ class ExpressPlus {
         this.addRoute("DELETE", path, handler);
     }
     listen(port, callback) {
-        const server = (0, http_1.createServer)((req, res) => {
+        const server = (0, http_1.createServer)(async (req, res) => {
             const method = req.method;
             const parsedUrl = (0, url_1.parse)(req.url || "", true);
             const pathname = parsedUrl.pathname || "/";
@@ -67,6 +77,17 @@ class ExpressPlus {
             extendedRes.json = function (data) {
                 extendedRes.setHeader("Content-Type", "application/json");
                 extendedRes.end(JSON.stringify(data));
+            };
+            // Thêm phương thức render cho EJS
+            extendedRes.render = function (view, data = {}) {
+                const filePath = path_1.default.join(this.viewsPath, `${view}.ejs`);
+                if (!fs_1.default.existsSync(filePath)) {
+                    this.status(404).end(`View "${view}.ejs" not found in ${this.viewsPath}`);
+                    return;
+                }
+                const html = ejs_1.default.render(fs_1.default.readFileSync(filePath, "utf-8"), data);
+                this.setHeader("Content-Type", "text/html");
+                this.end(html);
             };
             // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
             const route = this.routes[method].find((r) => {
