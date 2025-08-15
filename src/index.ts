@@ -43,7 +43,7 @@ class ExpressPlus {
     next: () => void
   ) => void)[] = [];
 
-  // Định nghĩa thư mục chứa views với giá trị mặc định và cho phép tùy chỉnh
+  // Lưu viewsPath như một thuộc tính của instance
   private viewsPath: string;
 
   constructor(options: { viewsPath?: string } = {}) {
@@ -119,18 +119,18 @@ class ExpressPlus {
       };
 
       extendedRes.status = function (code: number) {
-        extendedRes.statusCode = code;
-        return extendedRes;
-      };
+        this.statusCode = code;
+        return this;
+      }.bind(this);
 
       extendedRes.json = function (data: any) {
-        extendedRes.setHeader("Content-Type", "application/json");
-        extendedRes.end(JSON.stringify(data));
-      };
+        this.setHeader("Content-Type", "application/json");
+        this.end(JSON.stringify(data));
+      }.bind(this);
 
-      // Thêm phương thức render cho EJS
+      // Bind render method with the correct context
       extendedRes.render = function (view: string, data: any = {}) {
-        const filePath = path.join(this.viewsPath, `${view}.ejs`);
+        const filePath = path.join(this.viewsPath, `${view}.ejs`); // Sử dụng this.viewsPath từ instance
         if (!fs.existsSync(filePath)) {
           this.status(404).end(
             `View "${view}.ejs" not found in ${this.viewsPath}`
@@ -140,7 +140,7 @@ class ExpressPlus {
         const html = ejs.render(fs.readFileSync(filePath, "utf-8"), data);
         this.setHeader("Content-Type", "text/html");
         this.end(html);
-      };
+      }.bind(this); // Bind this để giữ context của ExpressPlus
 
       // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
       const route = this.routes[method].find((r) => {
