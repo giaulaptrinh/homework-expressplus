@@ -1,6 +1,8 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
-
+import ejs from "ejs";
+import path from "path";
+import fs from "fs";
 // Mở rộng Request
 interface ExtendedRequest extends IncomingMessage {
   query?: Record<string, string | string[]>;
@@ -14,6 +16,7 @@ interface ExtendedRequest extends IncomingMessage {
 interface ExtendedResponse extends ServerResponse {
   status: (code: number) => ExtendedResponse;
   json: (data: any) => void;
+  render: (view: string, data?: any) => void; // Thêm phương thức render
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -38,6 +41,14 @@ class ExpressPlus {
     res: ExtendedResponse,
     next: () => void
   ) => void)[] = [];
+
+  // Định nghĩa thư mục chứa views (mặc định là "views")
+  private viewsPath: string = path.join(process.cwd(), "views");
+
+  constructor() {
+    // Có thể cho phép tùy chỉnh viewsPath qua constructor nếu cần
+    // this.viewsPath = options.viewsPath || path.join(process.cwd(), "views");
+  }
 
   private addRoute(method: Method, path: string, handler: Handler): void {
     this.routes[method].push({ path, handler });
@@ -74,7 +85,7 @@ class ExpressPlus {
   }
 
   listen(port: number, callback: () => void): void {
-    const server = createServer((req, res) => {
+    const server = createServer(async (req, res) => {
       const method = req.method as Method;
       const parsedUrl = parse(req.url || "", true);
       const pathname = parsedUrl.pathname || "/";
@@ -112,6 +123,18 @@ class ExpressPlus {
       extendedRes.json = function (data: any) {
         extendedRes.setHeader("Content-Type", "application/json");
         extendedRes.end(JSON.stringify(data));
+      };
+
+      // Thêm phương thức render cho EJS
+      extendedRes.render = function (view: string, data: any = {}) {
+        const filePath = path.join(this.viewsPath, `${view}.ejs`);
+        if (!fs.existsSync(filePath)) {
+          extendedRes.status(404).end("View not found");
+          return;
+        }
+        const html = ejs.render(fs.readFileSync(filePath, "utf-8"), data);
+        extendedRes.setHeader("Content-Type", "text/html");
+        extendedRes.end(html);
       };
 
       // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
@@ -163,3 +186,4 @@ class ExpressPlus {
 }
 
 export default ExpressPlus;
+export { ExtendedRequest, ExtendedResponse };

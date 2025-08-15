@@ -1,6 +1,6 @@
 {
   "name": "@gieo/express",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "",
   "main": "./dist/index.js",
   "scripts": {
@@ -16,5 +16,8 @@
     "@types/node": "^24.2.1",
     "jiti": "^2.5.1",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10"
   }
 }

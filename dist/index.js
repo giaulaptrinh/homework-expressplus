@@ -39,10 +39,10 @@ class ExpressPlus {
             const method = req.method;
             const parsedUrl = (0, url_1.parse)(req.url || "", true);
             const pathname = parsedUrl.pathname || "/";
-            const route = this.routes[method].find((r) => r.path === pathname);
             const extendedReq = req;
             const extendedRes = res;
             extendedReq.query = parsedUrl.query;
+            extendedReq.params = {};
             extendedReq.getBody = async () => {
                 if (extendedReq.body)
                     return extendedReq.body;
@@ -68,6 +68,30 @@ class ExpressPlus {
                 extendedRes.setHeader("Content-Type", "application/json");
                 extendedRes.end(JSON.stringify(data));
             };
+            // 🔍 Tìm route phù hợp (hỗ trợ dynamic route)
+            const route = this.routes[method].find((r) => {
+                const routeParts = r.path.split("/").filter(Boolean);
+                const urlParts = pathname.split("/").filter(Boolean);
+                if (routeParts.length !== urlParts.length)
+                    return false;
+                return routeParts.every((part, i) => {
+                    return part.startsWith(":") || part === urlParts[i];
+                });
+            });
+            // 🧠 Trích xuất params nếu có
+            if (route) {
+                const routeParts = route.path.split("/").filter(Boolean);
+                const urlParts = pathname.split("/").filter(Boolean);
+                routeParts.forEach((part, i) => {
+                    if (part.startsWith(":")) {
+                        const key = part.slice(1);
+                        extendedReq.params[key] = urlParts[i];
+                    }
+                });
+            }
+            // 🧪 Logging đơn giản
+            console.log(`[${method}] ${pathname}`);
+            // 🧩 Middleware + Route handler
             let i = 0;
             const next = () => {
                 const middleware = this.middlewares[i++];
@@ -78,7 +102,7 @@ class ExpressPlus {
                     route.handler(extendedReq, extendedRes);
                 }
                 else {
-                    extendedRes.status(404).end("Not Found");
+                    extendedRes.status(404).json({ message: "Not Found" });
                 }
             };
             next();
